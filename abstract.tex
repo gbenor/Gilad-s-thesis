@@ -1,0 +1,12 @@
+\chapter*{Abstract}
+\section*{Background} %112 words
+MicroRNAs (miRNAs) are small non-coding RNAs that regulate gene expression post-transcriptionally via base-pairing with complementary sequences on messenger RNAs (mRNAs). Due to the technical challenges involved in the application of high-throughput experimental methods, datasets of direct bona-fide miRNA targets exist only for a few model organisms. Machine learning (ML) based target prediction methods were successfully trained and tested on some of these datasets. It is desirable to further apply the trained models to organisms where experimental training data is unavailable. However, it is largely unknown how the features of miRNA-target interactions evolve and whether there are features that have been fixed during evolution, questioning the general applicability of these ML methods across species.
+
+\section*{Results} %87
+In this work, we used eight datasets of direct miRNA-target interactions from four organisms (human, mouse, worm, cattle) to examine whether interaction rules are transferable from one organism to another. Using ML classifiers, we achieved high accuracy for intra-dataset classification and found that the most influential features of all datasets significantly overlap. To explore the relationships between datasets we measured the divergence of their miRNA seed sequences and evaluated the performance of cross-datasets classification. We showed that both measures coincide with the evolutionary distance of the compared organisms.
+
+\section*{Conclusions} % 64
+Our results indicate that the transferability of miRNA-targeting rules between organisms depends on several factors, including the composition of seed families and evolutionary distance. Furthermore, our feature importance results suggest that some miRNA-target features have been evolving while some have been fixed. Our study provides important insights for future developments of target prediction tools that could be applied to organisms without sufficient experimental data.
+
+\section*{Availability and implementation} The code is freely available at \url{https://github.com/gbenor/TPVOD}
+

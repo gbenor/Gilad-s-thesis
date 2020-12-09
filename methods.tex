@@ -1,0 +1,145 @@
+\chapter{Materials and methods}
+\label{chap:methods}
+\section{Software packages and tools}
+Code developed under this research was implemented as a Python package running on a Linux platform. It uses bioinformatics, data analysis and machine learning packages. The bioinformatics packages are ViennaRNA (v2.4.13) \cite{lorenz2011viennarna}, Biopython (v1.72) \cite{cock2009biopython} and NCBI Blast \cite{altschul1990basic_blast}. The data packages are pandas (v0.23.4) \cite{mckinney2010data_pandas} and numpy (v1.15.4) \cite{oliphant2006guide_numpy}. The machine learning packages are scikit-learn (v0.20.1) \cite{pedregosa2011scikit} and XGBoost (v0.81) \cite{xgboost}.
+
+\section{Data processing}
+We acquired eight high-throughput chimeric miRNA-target datasets from four different organisms: human, mouse, cattle, and worm (Table \ref{tbl:dataset_description}). The datasets' files were downloaded from the journals' websites \cite{scheel2017global, grosswendt2014unambiguous, broughton2016pairing, helwak2013mapping, darnell_moore2015mirna}. In addition, we downloaded miRNA sequences from miRBase (releases 17-22) \cite{kozomara2013mirbase} and 3'UTR sequences from Ensembl Biomart database \cite{smedley2015biomart}. Genomic sequences for \textit{C.elegans} were downloaded from wormBase \cite{lee2017wormbase}, and for human and mouse from UCSC Genome Browser \cite{karolchik2004ucsc}.
+The datasets were provided in different formats, containing different levels of information about the interactions. Therefore, we developed a processing pipeline to transform the datasets into a standard format, and to include the following fields: metadata (interaction ID, interaction source), miRNA name and sequence, target site sequence (the site where the interaction occurred), and for sites located at the 3'UTRs - the corresponding 3'UTR sequence and the coordinates of the site within it.
+
+We started the pipeline by retrieving the missing miRNA sequences by their name from miRBase (for datasets  \textit{ca1, ce2, h3, m2}). Then, we extracted the target sequences (for datasets \textit{ce2, h3, m2}) based on the genomic coordinates. The target sequences are located in various mRNA regions such as 5' untranslated region (UTR), the coding sequence (CDS), or 3' UTR. miRNA target sites located at the 3'UTRs of mRNA sequences are considered to be most functional \cite{menor2014mirmark, baek2008impact}. Therefore, in our analyses, we discarded sites that fall outside the 3'UTRs. Since most datasets do not provide the regions containing the interactions, our next step was to obtain that information. We used Blast \cite{altschul1990basic_blast} to match the target mRNA sequences against the 3'UTRs downloaded from the Ensembl Biomart database. We considered only full match results. In cases where multiple UTRs exist per a gene, we considered the longest UTR. The full 3'UTR sequences were kept for the extraction of flanking site features, as later described. Finally, we took the list of miRNA-target pairs and examined the interaction structure. We applied the ViennaRNA suite (RNAduplex) \cite{lorenz2011viennarna} to calculate the interaction duplex, using the miRNA and the target site sequences. We then classified the duplexes based on their seed type: canonical seed, non-canonical seed, and other. Canonical seed interactions have exact Watson-Crick pairing in positions 2–7 or 3–8 of the miRNA, while non-canonical seed interactions may contain \textit{GU} base-pairs and up to one bulged or mismatched nucleotide at these positions \cite{helwak2013mapping}. We kept canonical and non-canonical seed interactions only, discarding other interactions from the analysis.
+Interactions that passed all pipeline stages were designated as positive interactions and were considered for further analysis (Table \ref{tab:preprocess}).
+
+
+\begin{table}[h!]
+\caption{Data processing pipeline}
+\label{tab:preprocess}
+ \resizebox{\textwidth}{!}{%
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Paper}       & \cite{helwak2013mapping} & \cite{grosswendt2014unambiguous} & \cite{scheel2017global} & 
+\cite{broughton2016pairing} & \cite{darnell_moore2015mirna} \\ \hline
+\textbf{Datasets}  & h1 & ce1, h2, m1 & ca1                & ce2      & h3, m2  \\ \hline
+\textbf{miRNA sequence}  & \checkmark  & \checkmark           &  mirbase & mirbase  & mirbase \\ \hline
+\textbf{Target sequence} & \checkmark  & \checkmark           & \checkmark                  & wormbase & UCSC genome browser  \\ \hline
+\textbf{Site region}      & \multicolumn{5}{c|}{Ensembl Biomart + Blast}                                 \\ \hline
+\textbf{Duplex structure}     & \multicolumn{5}{c|}{Vienna RNAduplex}                                \\ \hline
+\textbf{Seed Filter} & \multicolumn{5}{c|}{Canonical and non-canonical seeds only}                \\ \hline
+\end{tabular}}
+\caption*{The table describes the set of actions required to transform the datasets into a uniform format to serve as input for further data analysis and machine learning experiments. The check-mark sign (\checkmark) represents a piece of information taken directly from the paper without additional calculations.}
+\end{table}
+
+
+
+\section{Generation of negative interactions}
+To generate the negative interactions, we used a synthetic method, similarly to the method described in \cite{menor2014mirmark, john2004human, maragkakis2009accurate}. For each positive interaction appearing in the dataset, we generated a negative interaction as follows. First, we generated a mock miRNA sequence by randomly shuffling the original sequence until there is at most one match in the regions 2-7 and 3-7 between the mock miRNA and any real miRNA of the examined organism (according to miRBase). Next, we provided the mock miRNA and the full 3'UTR sequence as inputs to RNAduplex, which is optimized for computing the hybrid structure between a small probe sequence and a long target sequence. We repeated these two steps until the output duplex had a canonical seed or non-canonical seed. 
+We managed to generate a negative interaction for each positive interaction, thus, at the end of this process, we had balanced datasets.
+
+\section{Calculation of miRNA distribution} \label{miRNAdistribution2}
+We counted the appearance of each miRNA sequence within a dataset and used that information to generate the cumulative distribution function (CDF) showed in Figure \ref{fig:datasetplot}. We used the \textit{argmax} function to find the 90\% value, which returns the first point in the CDF which is greater than 90\%. 
+The seed distribution calculation was done by first clustering miRNA sequences based on their seed sequence (position 2-7) and then following the same steps described above.
+
+\section{Features} \label{methods_features}
+To represent miRNA-target interactions, we used 490 expert-designed features, that are classified into two categories (high-level and low-level) and five subcategories (Table \ref{tbl:feature_category}). Four of the categories (free energy, mRNA composition, miRNA pairing, and site accessibility) were adopted from \cite{wen2018deepmirtar} while the seed features group was designed in this work. 
+% For a full description of the features, see \nameref{add:feature_definition},  Table S9.
+
+The \textit{free energy} category includes 7 features representing the minimum free energy of the miRNA-mRNA duplex and the mRNA sequence at different regions including seed, non-seed, site, and flanking regions. 
+
+The \textit{mRNA composition} consists of 62 features which supply information about the target mRNA: the distance of the site from the edges of the 3'UTR (2 features), 1- and 2-mer sequence composition within the site region (20 features), and 1- and 2-mer sequence composition of the up and down 70nt flanking region (20 features each). 
+
+The \textit{miRNA pairing} category consists of 38 features which describe the duplex itself, including information about base-pairs in each location of the miRNA (20 features), and a total count of base-pairs, mismatches, and gaps in the site region (18 features).
+
+The \textit{site accessibility} features were calculated for each 3'UTR sequence containing the seed site, using RNAplfold in the ViennaRNA package \cite{lorenz2011viennarna} with the following parameters \textit{winsize=80}, \textit{span=40} and \textit{ulength=10}, as was suggested by previous works \cite{menor2014mirmark, wen2018deepmirtar}. The output of RNAplfold provided, for each nucleotide, the mean probability that regions of length 1 to a 10 (ulength), ending at this nucleotide, are unpaired. Out of these calculations we considered only the region that corresponds to the mRNA-target seed region (p2–p8) with 15 flanking bases to either side (37 bases in total), resulting in 37*10=370 features.
+
+In addition to the above features, we designed a new representation for the \textit{seed features}, which describes the base-pairing characteristics of the seed region (nt 1-8 of the miRNA). The new representation includes 13 features: 3 features describe the number of interactions in [nt1-8, nt2-7, nt3-8]; 3 features describe the number of GUs in [nt1-8, nt2-7, nt3-8]; 3 features give information about the number of mismatches (before the first match, inside the seed and after the last match in the seed region); 2 features describe the number of bulges [miRNA side, target side]; and the last two features give additional properties (start with A, index of the first base-pair).
+
+
+
+\begin{table}[h!]
+\caption{Feature categories that are used to represent miRNA-target interactions}
+\label{tbl:feature_category}
+ \resizebox{\textwidth}{!}{%
+\begin{tabular}{|l|c|ll}
+\hline
+\textbf{Category}  & \multicolumn{1}{l|}{\textbf{No. of features}} & \multicolumn{1}{l|}{\textbf{Description}}                                                                                               & \multicolumn{1}{l|}{\textbf{Group}}              \\ \hline
+Seed features      & 13                                        & \multicolumn{1}{l|}{Seed composition and properties}                                                                                    & \multicolumn{1}{l|}{High-level} \\ \hline
+Free Energy        & 7                                         & \multicolumn{1}{l|}{\begin{tabular}[c]{@{}l@{}}Free energy of the duplex and the mRNA \\ at different regions\end{tabular}}                                                                    & \multicolumn{1}{l|}{High-level} \\ \hline
+mRNA Composition   & 62                                        & \multicolumn{1}{l|}{mRNA composition in the site and flanking regions}                                                                           & \multicolumn{1}{l|}{High-level} \\ \hline
+miRNA Pairing      & 38                                        & \multicolumn{1}{l|}{\begin{tabular}[c]{@{}l@{}}Binding information at each miRNA position \\ and across the miRNA-target duplex\end{tabular}} & \multicolumn{1}{l|}{Low-level}  \\ \hline
+Site accessibility & 370                                       & \multicolumn{1}{l|}{Unpaired probabilities of each base}                                                                                                 & \multicolumn{1}{l|}{Low-level}  \\ \hline
+Total              & 490                                       &                                                                                                                                         &                                                  \\ \cline{1-2}
+\end{tabular}}
+\end{table}
+
+
+\section{Splitting the data into training and testing sets} \label{method:split}
+Correct determination of the training and testing sets is crucial for getting reliable results. Specifically, the testing set has to be large enough, it must not contain any sample from the training set, and it has to represent the dataset as a whole. 
+To address these rules, we implemented a stratified random split algorithm. The algorithm ensures that each miRNA appears in the training and the testing sets at the same proportion as in the original dataset. For example, if a specific miRNA constitutes 10\% of the interactions in the original dataset, the algorithm ensures that its proportion in both the training and the testing sets is 10\%. Within the stratified split, the assignment of the interactions to training (80\%) and testing (20\%) sets was done randomly according to a random state. For miRNAs appearing once in the dataset, we assigned its interaction to the testing set.
+We repeated this process 20 times with different random states, yielding 20 training sets and their corresponding 20 testing sets for each dataset. 
+In addition, for each dataset, we generated five control sets by a fully random algorithm, which does not take into account miRNA distributions. We used these sets as a reference baseline, to assess the influence of the stratified split algorithm on the results.
+
+\section{Evaluation of different machine learning methods} \label{method_ml_methods}
+We have chosen six machine learning methods, which are widely used in the field of computational biology, for the classification of miRNA-target interactions: XGBoost\cite{xgboost}, Random Forest (RF), K-nearest neighbors vote (KNN), regularized linear models with Stochastic Gradient Descent (SGD), Support Vector Machine (SVM) and Logistic Regression (LR).
+We performed the following optimization and learning steps for every combination of (dataset, classifier, data split), all together 1200 computationally intensive tasks (Equation \ref{eq1}):
+\begin{equation} \label{eq1}
+\begin{split}
+optimization \: tasks & = \#classifiers * \#datasets * \left (stratified\: splits + control\: splits \right ) \\
+ & = 6*8*( 20 + 5 ) \\
+ & = 1200
+\end{split}
+\end{equation}
+First, we searched for the classifiers' optimal hyper parameters. We performed an exhaustive search using sklearn GridSearchCV, using 4-fold cross validation, optimized for accuracy performance. Second, we explored the exhaustive search results and identified the set of parameters that achieved the best accuracy results. The classifier corresponding to this set of parameters was saved and used for evaluating the accuracy of classification on the testing set. We provide the values of the parameters for the hyper-parameter optimization and accuracy mean and standard deviation for the 20 stratified splits and the 5 control splits in the results section.
+
+We continued with the XGBoost classifier for calculating detailed performance measurements and for the analysis of feature importance. We calculated 6 widely used performance metrics including accuracy (ACC), sensitivity (TPR: true positive rate), and specificity (TNR: true negative rate). In addition, we calculated metrics that are widely used for model comparisons such as the Area Under the Receiver Operating Characteristic Curve (ROC AUC), Matthews Correlation Coefficient (MCC), and F1 score (also known as balanced F-score or F-measure). For the equations for the calculation these metrics, see Equations \ref{eq:acc}-\ref{eq:f1}.
+As before, the mean and the standard deviation for each measure were calculated on all the training-testing splits (Table \ref{tab:measurementinfo}).
+
+
+
+\begin{equation}
+ACC = \frac{TP + TN}{TP + FP + FN + TN} \label{eq:acc}
+\end{equation}
+
+\begin{equation}
+TPR = \frac{TP}{TP + FN} \label{eq:tpr}
+\end{equation}
+
+\begin{equation}
+TNR = \frac{TN}{TN + FP} \label{eq:tnr}
+\end{equation}
+
+\begin{equation}
+MCC = \frac{TP*TN-FP*FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}
+\end{equation}
+
+\begin{equation} \label{eq:f1}
+F1 score = \frac{TP}{TP+\frac{1}{2}(FP+FN)}
+\end{equation}
+
+
+
+\section{Identification of the top important features} \label{ident_top_features}
+First, we extracted the top features for every dataset as follows. We used the gain metric provided by XGBoost and calculated the mean gain of each feature across the 20 different stratified splits. We then sorted the list of features according to the mean gain. We observed that the top 6 features are the most dominant (for all datasets), and the gain score of the rest is lower in an order of magnitude. Therefore, we kept only the top 6 features of each dataset.  
+Second, to be able to compare between datasets, we scaled the mean gain scores of each dataset to a range of 0-100 (by dividing it by the maximum value and multiplying by 100). 
+Third, we composed a unified list of the top features from all the datasets and generated a table that includes the scaled mean gain values for every feature (row) in every dataset (column). Finally, we calculated the mean score for each feature across all datasets (last column in the table) and sorted the table in descending order to it (see results table \ref{tab:feature_importance}).
+
+\section{Calculating Kullback-Leibler divergence}
+The Kullback-Leibler divergence is calculated on two probability distribution functions and measures the difference and the distance between them according to equation \ref{eq:1}.
+
+\begin{equation}
+ D_{KL} \left (P ||Q \right ) = \sum_{x\in \chi }{P\left ( x \right )log\left ( \frac{P\left ( x \right )}{Q\left ( x \right )} \right )}\label{eq:1}
+\end{equation}
+
+We used the KL divergence to measure the pairwise information loss between every two datasets, which can be interpreted as the amount of information lost when the training set represents the testing set. \textit{P(x)} and \textit{Q(x)} are the miRNA seed distribution functions as explained in \nameref{miRNAdistribution2}. \textit{Q(x)} is the approximation distribution (calculated from the training set) and \textit{P(x)} is the true distribution (calculated from the testing set). $\chi$ is the union of all the miRNA seeds that appear in both datasets.
+
+\section{Dimensionality reduction using PCA}
+The dimensionality reduction algorithm enables the representation of the data in a 2-dimensional scatter plot and facilitates the inspection of the data visually. We performed a dimensional reduction using the PCA algorithm to transform the datasets into 2-dimensional representation. 
+We used the same transformer for all datasets to enable their comparison. 
+We extracted the columns corresponding to the top 16 features that were found in section \nameref{ident_top_features} (referred to as selected features). Since the datasets are of different sizes, we first oversampled the datasets by random sampler to bring them to the size of the largest dataset. Second, we concatenated the oversampled datasets together. Third, we standardized the selected features by subtracting the mean and scaling to the unit variance for each feature independently. Finally, we fitted a PCA transformer and applied it to the original datasets (without oversampling), yielding the 2D representation of the datasets on the same vector space. The dimensionality reduction was done on the positive experimental interactions only.
+
+\section{Evaluation of the classification performance between datasets}
+We next evaluated the performance of XGBoost in the classification of interactions derived from a dataset that is different from the dataset it was trained on. We enumerated over all the 56 possible pairs of training and testing datasets: (\textit{train\textsubscript{i}, test\textsubscript{j}}). For each pair, we loaded 20 XGBoost classifiers (corresponding to 20 splits) generated for dataset \textit{i} in section \nameref{method_ml_methods} and evaluated their performance on the entire dataset \textit{j} (without splitting it). We then computed the mean and the standard deviation of the accuracy results of the 20 tests.
+
+
+
+
+

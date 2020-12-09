@@ -1,0 +1,87 @@
+% !TeX program = pdflatex
+
+\documentclass[12pt,a4paper,oneside,onecolumn]{book}
+
+\usepackage{libertine}
+\usepackage{courier}
+\usepackage[utf8x]{inputenc}
+\usepackage[hebrew,english]{babel}
+\usepackage[longnamesfirst,square,numbers,comma,sort&compress]{natbib}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathpazo}
+\usepackage{datetime}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{amssymb}
+
+
+% \usepackage[utf8]{inputenc} %unicode support
+
+\usepackage{todonotes}
+\usepackage[flushleft]{threeparttable}
+\usepackage{multirow}
+\usepackage{nameref}
+\usepackage{amsmath}
+\usepackage{hyperref}
+% \usepackage[table,xcdraw]{xcolor}
+
+% If you use beamer only pass "xcolor=table" option, i.e.
+% \documentclass[xcolor=table]{beamer}
+\usepackage{threeparttable}
+\usepackage{subfig}
+\usepackage[normalem]{ulem}
+\usepackage{tikz}
+% \def\checkmark{\tikz\fill[scale=0.4](0,.35) -- (.25,0) -- (1,.7) -- (.25,.15) -- cycle;} 
+% \useunder{\uline}{\ul}{}
+\usepackage{lscape}
+
+
+
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+
+\titleformat{\chapter}[hang]{\bf\huge}{\thechapter}{2pc}{}
+\title{BGU Thesis Template}
+
+\begin{document}
+
+\include{cover}
+\include{cover_sig}
+
+\frontmatter
+
+\include{abstract}
+\include{acknowledgements}
+\include{paper_status}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\mainmatter
+
+\input{biobackground}
+\input{introduction}
+\input{previous_work}
+\input{research_question}
+\input{methods}
+\input{results}
+\input{conclusion}
+\input{tools}
+
+
+% \bibliographystyle{apa}
+\bibliographystyle{abbrv}  
+\bibliography{thesis}
+
+\backmatter
+\include{abstract_heb}
+\include{cover_sig_heb}
+\include{cover_heb}
+
+
+\end{document}
